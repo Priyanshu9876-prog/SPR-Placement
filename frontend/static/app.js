@@ -1,18 +1,26 @@
-// frontend static JS: interacts with Flask API
-// async function request(path, opts={}) {
-//   const res = await fetch('/api'+path, Object.assign({
-//     headers:{'Content-Type':'application/json'}
-//   }, opts));
-//   return res.json();
-// }
+// frontend static JS: interacts with Render-hosted Flask API
+
 const API = "https://spr-placement.onrender.com/api";
 
 async function request(path, opts = {}) {
-  const res = await fetch(`${API}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...opts
-  });
-  return res.json();
+  try {
+    const res = await fetch(`${API}${path}`, {
+      headers: { "Content-Type": "application/json" },
+      ...opts
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`HTTP ${res.status}: ${text}`);
+    }
+    // Some endpoints may return empty body on delete - handle that
+    const contentType = res.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) return res.json();
+    return null;
+  } catch (err) {
+    console.error("API request failed:", err);
+    alert("API error: " + err.message);
+    throw err;
+  }
 }
 
 // Load students and populate lists
@@ -44,17 +52,17 @@ async function loadStudents(){
 // View student detail in alert (quick)
 async function viewStudent(id){
   const s = await request('/students/'+id);
-  const offers = s.offers.map(o => `${o.company} - ${o.role} [${o.status}]`).join('\n');
-  const interns = s.internships.map(i => `${i.company} - ${i.role} [${i.status}]`).join('\n');
+  const offers = (s.offers || []).map(o => `${o.company} - ${o.role} [${o.status}]`).join('\n');
+  const interns = (s.internships || []).map(i => `${i.company} - ${i.role} [${i.status}]`).join('\n');
   alert(`${s.name} (${s.roll_no})\nDept: ${s.dept}\nEmail: ${s.email}\n----\nOffers:\n${offers || 'None'}\n----\nInternships:\n${interns || 'None'}`);
 }
 
 // Delete student
 async function deleteStudent(id){
   if(!confirm('Delete student and all related records?')) return;
-  await fetch('/api/students/'+id, {method:'DELETE'});
-  loadStudents();
-  loadDashboard();
+  await request(`/students/${id}`, { method: 'DELETE' });
+  await loadStudents();
+  await loadDashboard();
 }
 
 // Add student
@@ -68,10 +76,10 @@ document.getElementById('student-form').addEventListener('submit', async (e) => 
     year: f.year.value,
     email: f.email.value
   };
-  await fetch('/api/students', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+  await request('/students', { method: 'POST', body: JSON.stringify(data) });
   f.reset();
-  loadStudents();
-  loadDashboard();
+  await loadStudents();
+  await loadDashboard();
 });
 
 // Add offer
@@ -86,9 +94,9 @@ document.getElementById('offer-form').addEventListener('submit', async (e) => {
     date: f.date.value || null,
     status: f.status.value
   };
-  await fetch('/api/offers', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+  await request('/offers', { method: 'POST', body: JSON.stringify(data) });
   f.reset();
-  loadDashboard();
+  await loadDashboard();
 });
 
 // Add internship
@@ -103,9 +111,9 @@ document.getElementById('intern-form').addEventListener('submit', async (e) => {
     end_date: f.end_date.value || null,
     status: f.status.value
   };
-  await fetch('/api/internships', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+  await request('/internships', { method: 'POST', body: JSON.stringify(data) });
   f.reset();
-  loadDashboard();
+  await loadDashboard();
 });
 
 // Dashboard
@@ -122,5 +130,11 @@ async function loadDashboard(){
 }
 
 // Init
-loadStudents();
-loadDashboard();
+(async function init(){
+  try {
+    await loadStudents();
+    await loadDashboard();
+  } catch (e) {
+    console.error("Initialization error:", e);
+  }
+})();
