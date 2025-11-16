@@ -1,4 +1,6 @@
+python-dotenv
+psycopg2-binary   # required if you use Postgres on Render
+gunicorn
 Flask
 Flask-SQLAlchemy
 Flask-Cors
-gunicorn
