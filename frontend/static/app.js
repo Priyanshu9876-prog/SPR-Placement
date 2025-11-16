@@ -1,8 +1,17 @@
 // frontend static JS: interacts with Flask API
-async function request(path, opts={}) {
-  const res = await fetch('/api'+path, Object.assign({
-    headers:{'Content-Type':'application/json'}
-  }, opts));
+// async function request(path, opts={}) {
+//   const res = await fetch('/api'+path, Object.assign({
+//     headers:{'Content-Type':'application/json'}
+//   }, opts));
+//   return res.json();
+// }
+const API = "https://spr-placement.onrender.com/api";
+
+async function request(path, opts = {}) {
+  const res = await fetch(`${API}${path}`, {
+    headers: { "Content-Type": "application/json" },
+    ...opts
+  });
   return res.json();
 }
 
