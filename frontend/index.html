@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SPR Placement / Internship Update</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>SPR Placement / Internship Update</h1>
+      <p>Real-time tracker for students, offers and internships</p>
+    </header>
+
+    <section class="columns">
+      <div class="card" id="left">
+        <h2>Students</h2>
+        <form id="student-form">
+          <input name="roll_no" placeholder="Roll No" required />
+          <input name="name" placeholder="Name" required />
+          <input name="dept" placeholder="Dept" />
+          <input name="year" placeholder="Year" />
+          <input name="email" placeholder="Email" />
+          <button type="submit">Add Student</button>
+        </form>
+        <div id="students-list"></div>
+      </div>
+
+      <div class="card" id="right">
+        <h2>Offers & Internships</h2>
+
+        <div class="mini-card">
+          <h3>Add Offer</h3>
+          <form id="offer-form">
+            <select id="offer-student"></select>
+            <input name="company" placeholder="Company" required />
+            <input name="role" placeholder="Role" required />
+            <input name="ctc" placeholder="CTC" />
+            <input name="date" type="date" />
+            <select name="status">
+              <option>Offered</option>
+              <option>Accepted</option>
+              <option>Declined</option>
+              <option>Joined</option>
+            </select>
+            <button type="submit">Add Offer</button>
+          </form>
+        </div>
+
+        <div class="mini-card">
+          <h3>Add Internship</h3>
+          <form id="intern-form">
+            <select id="intern-student"></select>
+            <input name="company" placeholder="Company" required />
+            <input name="role" placeholder="Role" required />
+            <input name="start_date" type="date" />
+            <input name="end_date" type="date" />
+            <select name="status">
+              <option>Ongoing</option>
+              <option>Completed</option>
+            </select>
+            <button type="submit">Add Internship</button>
+          </form>
+        </div>
+
+        <div class="mini-card">
+          <h3>Dashboard</h3>
+          <div id="dashboard"></div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <small>Built for SPR Update — Faculty view / Mentor tracking</small>
+    </footer>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
