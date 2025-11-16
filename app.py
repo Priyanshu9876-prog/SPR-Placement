@@ -1,12 +1,27 @@
+import os
+from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-from datetime import datetime
-import os
+from dotenv import load_dotenv
 
+# Load .env from project root (if present)
+load_dotenv()
+
+# Create Flask app
 app = Flask(__name__, static_folder='frontend/static', template_folder='frontend')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///spr.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Config from environment with sensible defaults
+# DATABASE_URL may be in the form "postgres://..." so we replace that prefix for SQLAlchemy
+database_url = os.environ.get('DATABASE_URL', '') or 'sqlite:///spr.db'
+database_url = database_url.replace('postgres://', 'postgresql://', 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = os.environ.get('SQLALCHEMY_TRACK_MODIFICATIONS', 'False') == 'True'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-this-secret-in-production')
+app.config['DEBUG'] = os.environ.get('FLASK_DEBUG', 'False') == 'True'
+
+# Initialize extensions
 db = SQLAlchemy(app)
 CORS(app)
 
@@ -68,7 +83,7 @@ def serialize_offer(o):
         'role': o.role,
         'ctc': o.ctc,
         'status': o.status,
-        'date': o.date.isoformat(),
+        'date': o.date.isoformat() if o.date else None,
         'student_id': o.student_id
     }
 
@@ -87,7 +102,7 @@ def serialize_internship(i):
 def serialize_report(r):
     return {
         'id': r.id,
-        'date': r.date.isoformat(),
+        'date': r.date.isoformat() if r.date else None,
         'title': r.title,
         'content': r.content,
         'evaluation': r.evaluation,
@@ -98,7 +113,7 @@ def serialize_report(r):
 @app.route('/api/students', methods=['GET', 'POST'])
 def students():
     if request.method == 'POST':
-        data = request.json
+        data = request.json or {}
         s = Student(
             roll_no=data.get('roll_no'),
             name=data.get('name'),
@@ -118,7 +133,7 @@ def student_detail(student_id):
     if request.method == 'GET':
         return jsonify(serialize_student(s))
     if request.method == 'PUT':
-        data = request.json
+        data = request.json or {}
         s.roll_no = data.get('roll_no', s.roll_no)
         s.name = data.get('name', s.name)
         s.dept = data.get('dept', s.dept)
@@ -134,13 +149,13 @@ def student_detail(student_id):
 @app.route('/api/offers', methods=['GET', 'POST'])
 def offers():
     if request.method == 'POST':
-        data = request.json
+        data = request.json or {}
         o = Offer(
             company=data.get('company'),
             role=data.get('role'),
             ctc=data.get('ctc'),
             status=data.get('status','Offered'),
-            date=datetime.fromisoformat(data.get('date')).date() if data.get('date') else datetime.utcnow().date(),
+            date=(datetime.fromisoformat(data.get('date')).date() if data.get('date') else datetime.utcnow().date()),
             student_id=data['student_id']
         )
         db.session.add(o)
@@ -153,7 +168,7 @@ def offers():
 def offer_detail(offer_id):
     o = Offer.query.get_or_404(offer_id)
     if request.method == 'PUT':
-        data = request.json
+        data = request.json or {}
         o.company = data.get('company', o.company)
         o.role = data.get('role', o.role)
         o.ctc = data.get('ctc', o.ctc)
@@ -170,12 +185,12 @@ def offer_detail(offer_id):
 @app.route('/api/internships', methods=['GET', 'POST'])
 def internships():
     if request.method == 'POST':
-        data = request.json
+        data = request.json or {}
         i = Internship(
             company=data.get('company'),
             role=data.get('role'),
-            start_date=datetime.fromisoformat(data.get('start_date')).date() if data.get('start_date') else None,
-            end_date=datetime.fromisoformat(data.get('end_date')).date() if data.get('end_date') else None,
+            start_date=(datetime.fromisoformat(data.get('start_date')).date() if data.get('start_date') else None),
+            end_date=(datetime.fromisoformat(data.get('end_date')).date() if data.get('end_date') else None),
             status=data.get('status','Ongoing'),
             student_id=data['student_id']
         )
@@ -189,7 +204,7 @@ def internships():
 def internship_detail(id):
     i = Internship.query.get_or_404(id)
     if request.method == 'PUT':
-        data = request.json
+        data = request.json or {}
         i.company = data.get('company', i.company)
         i.role = data.get('role', i.role)
         if data.get('start_date'):
@@ -206,9 +221,9 @@ def internship_detail(id):
 # ---------------- Routes - Reports ----------------
 @app.route('/api/reports', methods=['POST'])
 def reports():
-    data = request.json
+    data = request.json or {}
     r = Report(
-        date=datetime.fromisoformat(data.get('date')).date() if data.get('date') else datetime.utcnow().date(),
+        date=(datetime.fromisoformat(data.get('date')).date() if data.get('date') else datetime.utcnow().date()),
         title=data.get('title'),
         content=data.get('content'),
         evaluation=data.get('evaluation'),
@@ -222,7 +237,7 @@ def reports():
 def report_detail(report_id):
     r = Report.query.get_or_404(report_id)
     if request.method == 'PUT':
-        data = request.json
+        data = request.json or {}
         if data.get('date'):
             r.date = datetime.fromisoformat(data.get('date')).date()
         r.title = data.get('title', r.title)
@@ -260,8 +275,8 @@ def serve_frontend(path):
         return send_from_directory('frontend', 'index.html')
 
 if __name__ == '__main__':
+    # create DB and seed sample data
     db.create_all()
-    # seed sample data if empty
     if Student.query.count() == 0:
         s1 = Student(roll_no='BT123', name='Aman Verma', dept='CSE', year='3', email='aman@example.com')
         s2 = Student(roll_no='BT124', name='Priyanshu Agarwal', dept='IT', year='3', email='priyanshu@example.com')
@@ -269,4 +284,6 @@ if __name__ == '__main__':
         o1 = Offer(company='Zomato', role='SDE Intern', ctc='6 LPA', status='Accepted', date=datetime(2025,5,10), student_id=s2.id)
         i1 = Internship(company='ABC Corp', role='Data Analyst Intern', start_date=datetime(2025,6,1), end_date=datetime(2025,8,31), status='Completed', student_id=s1.id)
         db.session.add_all([o1,i1]); db.session.commit()
-    app.run(host='0.0.0.0', port=5000, debug=True)
+
+    # Use debug from config
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=app.config['DEBUG'])
