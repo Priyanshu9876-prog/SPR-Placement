@@ -1,3 +1,4 @@
+# app.py
 import os
 from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory
@@ -23,7 +24,8 @@ app.config['DEBUG'] = os.environ.get('FLASK_DEBUG', 'False') == 'True'
 
 # Initialize extensions
 db = SQLAlchemy(app)
-CORS(app)
+# Allow cross-origin requests from anywhere (use a specific origin in production)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # ---------------- Models ----------------
 class Student(db.Model):
@@ -108,6 +110,22 @@ def serialize_report(r):
         'evaluation': r.evaluation,
         'internship_id': r.internship_id
     }
+
+# ---------------- Ensure DB schema and seed (works on Render) ----------------
+# Create tables and seed a few rows if DB is empty. This runs at startup in any environment,
+# including when the app is launched by gunicorn on Render.
+with app.app_context():
+    db.create_all()
+    # One-time seed when DB is empty
+    if Student.query.count() == 0:
+        s1 = Student(roll_no='BT123', name='Aman Verma', dept='CSE', year='3', email='aman@example.com')
+        s2 = Student(roll_no='BT124', name='Priyanshu Agarwal', dept='IT', year='3', email='priyanshu@example.com')
+        db.session.add_all([s1, s2])
+        db.session.commit()
+        o1 = Offer(company='Zomato', role='SDE Intern', ctc='6 LPA', status='Accepted', date=datetime(2025,5,10), student_id=s2.id)
+        i1 = Internship(company='ABC Corp', role='Data Analyst Intern', start_date=datetime(2025,6,1), end_date=datetime(2025,8,31), status='Completed', student_id=s1.id)
+        db.session.add_all([o1, i1])
+        db.session.commit()
 
 # ---------------- Routes - Students ----------------
 @app.route('/api/students', methods=['GET', 'POST'])
@@ -274,16 +292,6 @@ def serve_frontend(path):
     else:
         return send_from_directory('frontend', 'index.html')
 
+# Run locally only
 if __name__ == '__main__':
-    # create DB and seed sample data
-    db.create_all()
-    if Student.query.count() == 0:
-        s1 = Student(roll_no='BT123', name='Aman Verma', dept='CSE', year='3', email='aman@example.com')
-        s2 = Student(roll_no='BT124', name='Priyanshu Agarwal', dept='IT', year='3', email='priyanshu@example.com')
-        db.session.add_all([s1,s2]); db.session.commit()
-        o1 = Offer(company='Zomato', role='SDE Intern', ctc='6 LPA', status='Accepted', date=datetime(2025,5,10), student_id=s2.id)
-        i1 = Internship(company='ABC Corp', role='Data Analyst Intern', start_date=datetime(2025,6,1), end_date=datetime(2025,8,31), status='Completed', student_id=s1.id)
-        db.session.add_all([o1,i1]); db.session.commit()
-
-    # Use debug from config
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=app.config['DEBUG'])
