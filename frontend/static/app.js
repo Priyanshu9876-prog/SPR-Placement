@@ -50,12 +50,66 @@ async function loadStudents(){
 }
 
 // View student detail in alert (quick)
-async function viewStudent(id){
-  const s = await request('/students/'+id);
-  const offers = (s.offers || []).map(o => `${o.company} - ${o.role} [${o.status}]`).join('\n');
-  const interns = (s.internships || []).map(i => `${i.company} - ${i.role} [${i.status}]`).join('\n');
-  alert(`${s.name} (${s.roll_no})\nDept: ${s.dept}\nEmail: ${s.email}\n----\nOffers:\n${offers || 'None'}\n----\nInternships:\n${interns || 'None'}`);
+// --- Modal helpers ---
+function showModal(title, htmlContent) {
+  const modal = document.getElementById('student-modal');
+  const body = document.getElementById('student-modal-body');
+  const titleEl = document.getElementById('student-modal-title');
+  titleEl.textContent = title || 'Details';
+  body.innerHTML = htmlContent || '';
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden', 'false');
+
+  // put focus on close button for accessibility
+  document.getElementById('student-modal-close').focus();
 }
+
+// close modal
+function closeModal() {
+  const modal = document.getElementById('student-modal');
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+// wire up modal close handlers (click backdrop, close button, ESC)
+document.addEventListener('click', (e) => {
+  const modal = document.getElementById('student-modal');
+  if (!modal) return;
+  if (e.target.id === 'student-modal-backdrop' || e.target.id === 'student-modal-close') closeModal();
+});
+document.getElementById('student-modal-ok').addEventListener('click', closeModal);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+// --- Updated viewStudent: uses modal instead of alert ---
+async function viewStudent(id){
+  try {
+    const s = await request('/students/'+id);
+    const offers = (s.offers || []).map(o => `<li>${o.company} — ${o.role} <small>[${o.status}]</small></li>`).join('') || '<li>None</li>';
+    const interns = (s.internships || []).map(i => `<li>${i.company} — ${i.role} <small>[${i.status}]</small></li>`).join('') || '<li>None</li>';
+
+    const html = `
+      <div class="modal-row">
+        <p><strong>${s.name} (${s.roll_no})</strong></p>
+        <p class="meta">Dept: ${s.dept || '—'} &nbsp;•&nbsp; Year: ${s.year || '—'}</p>
+        <p><strong>Email:</strong> ${s.email || '—'}</p>
+
+        <hr/>
+
+        <p><strong>Offers</strong></p>
+        <ul style="margin:4px 0 10px 18px;padding:0;">${offers}</ul>
+
+        <p><strong>Internships</strong></p>
+        <ul style="margin:4px 0 0 18px;padding:0;">${interns}</ul>
+      </div>
+    `;
+
+    showModal(`${s.name} — ${s.roll_no}`, html);
+  } catch (err) {
+    console.error('Failed to load student for modal:', err);
+    alert('Could not load student details.');
+  }
+}
+
 
 // Delete student
 async function deleteStudent(id){
