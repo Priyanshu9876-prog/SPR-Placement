@@ -13,3 +13,73 @@ form button{background:var(--accent);color:#fff;border:none;padding:8px 12px;bor
 .mini-card{margin-top:12px;padding:10px;border-radius:8px;background:#fbfdff}
 footer{text-align:center;margin-top:18px;color:#6b7893}
 @media(max-width:900px){.columns{flex-direction:column}}
+/* Modal overlay & content */
+.modal { 
+  position: fixed;
+  inset: 0;
+  display: none; /* show via JS by setting display:block or adding .open */
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  font-family: inherit;
+}
+
+/* dimmed backdrop */
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 12, 25, 0.55);
+  backdrop-filter: blur(2px);
+  transition: opacity .18s ease;
+}
+
+/* centered card */
+.modal-content {
+  position: relative;
+  width: min(720px, 92%);
+  max-height: 85vh;
+  overflow: auto;
+  background: var(--card);
+  border-radius: 12px;
+  box-shadow: 0 18px 40px rgba(10,20,40,0.25);
+  padding: 14px;
+  z-index: 1201;
+  transform: translateY(6px);
+  transition: transform .18s ease, opacity .18s ease;
+}
+
+/* header */
+.modal-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding-bottom:8px;
+  border-bottom:1px solid #f0f3f9;
+}
+.modal-header h3 { margin:0; font-size:1.05rem; color:var(--accent); }
+
+/* close button (top-right) */
+.modal-close {
+  background:transparent;
+  border:none;
+  font-size:22px;
+  line-height:1;
+  cursor:pointer;
+  color:#6b7893;
+  padding:6px;
+  border-radius:8px;
+}
+.modal-close:hover { background:#f5f7fb; color:#2d6cdf; }
+
+/* body */
+.modal-body { padding:12px 6px; color:#0b2545; font-size:0.96rem; }
+.modal-body p { margin:6px 0; }
+.modal-body .meta { color:#6b7893; font-size:0.9rem; margin-bottom:8px; }
+
+/* footer */
+.modal-footer { padding-top:8px; border-top:1px solid #f0f3f9; text-align:right; }
+.btn { background:var(--accent); color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; }
+
+/* show state */
+.modal.open { display:flex; }
